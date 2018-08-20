@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	"golang.org/x/net/html"
+
+	"github.com/go-audio/midi"
 )
 
 const (
@@ -90,9 +93,34 @@ var pages = []string{
 	"http://www.piano-e-competition.com/midi_2011.asp",
 }
 
+var fetchFlag = flag.Bool("fetch", false, "fetch the midi files")
+
 func main() {
-	for _, page := range pages {
-		fetch(page)
-		time.Sleep(3 * time.Second)
+	flag.Parse()
+
+	if *fetchFlag {
+		for _, page := range pages {
+			fetch(page)
+			time.Sleep(3 * time.Second)
+		}
+	}
+
+	file, err := os.Open("ecompetition/midifiles/2011/yi03.mid")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	decoder := midi.NewDecoder(file)
+	err = decoder.Decode()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, track := range decoder.Tracks {
+		fmt.Println(track.Tempo())
+		fmt.Println(decoder.TicksPerQuarterNote)
+		for _, event := range track.Events {
+			fmt.Println(event.String())
+		}
 	}
 }
